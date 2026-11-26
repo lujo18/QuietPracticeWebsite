@@ -273,8 +273,51 @@ test("Android in-app browser gets no fake Play Store fallback and best-effort Ch
   assert.doesNotMatch(openedUrls[0], /market:\/\//)
   assert.doesNotMatch(openedUrls[0], /play\.google\.com/)
   assert.match(statusElement.textContent, /iPhone and iPad/)
-  assert.doesNotMatch(statusElement.textContent, /Play Store|Google Play/)
+  assert.match(statusElement.textContent, /No Android app or Play Store listing/)
+  assert.doesNotMatch(statusElement.textContent, /Google Play/)
   assert.match(primaryCtaElement.textContent, /Get Quiet Practice|App Store/)
+})
+
+test("Android in-app overlay shows Open in Chrome and Continue to page without App Store action", () => {
+  const statusElement = { textContent: genericStatus }
+  const primaryCtaElement = { textContent: "Get Quiet Practice" }
+  const helpTitle = { textContent: "App Store help" }
+  const helpParagraphs = [{ textContent: "" }, { textContent: "" }]
+  const helpElement = {
+    querySelector(selector) {
+      return selector === "h2" ? helpTitle : null
+    },
+    querySelectorAll(selector) {
+      return selector === "p" ? helpParagraphs : []
+    },
+  }
+  const chromeAction = createEventTarget({ hidden: true })
+  const dismissButton = createEventTarget()
+  const overlayElement = createOverlayStub({ chromeAction, dismissButton })
+
+  withDomStubs(() => {
+    runHandoff({
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36 TikTok 34.0.0",
+      platform: "Linux armv8l",
+      maxTouchPoints: 5,
+      search: "?stay=1",
+      href: "https://quietpractice.app/?ref=tiktok",
+      statusElement,
+      primaryCtaElement,
+      helpElement,
+      overlayElement,
+      openUrl() {},
+    })
+  })
+
+  assert.equal(overlayElement.hidden, false)
+  assert.equal(chromeAction.hidden, false)
+  assert.equal(dismissButton.hidden, false)
+  assert.equal(overlayElement._parts.appStoreAction.hidden, true)
+  assert.equal(primaryCtaElement.hidden, true)
+  assert.match(statusElement.textContent, /No Android app or Play Store listing/)
+  assert.equal(helpTitle.textContent, "iPhone and iPad only")
 })
 
 test("Android in-app browser stay=1 suppresses auto intent but keeps overlay state", () => {
@@ -470,10 +513,12 @@ test("Android in-app overlay dismiss leaves honest iPhone/iPad-only fallback sta
   })
 
   assert.equal(overlayElement.hidden, true)
-  assert.equal(primaryCtaElement.textContent, "View on the App Store")
+  assert.equal(primaryCtaElement.hidden, true)
+  assert.notEqual(primaryCtaElement.textContent, "View on the App Store")
   assert.match(statusElement.textContent, /No Android app or Play Store listing/)
   assert.equal(helpTitle.textContent, "iPhone and iPad only")
   assert.match(helpParagraphs[1].textContent, /no Android app or Google Play listing/i)
+  assert.equal(overlayElement._parts.appStoreAction.hidden, true)
 })
 
 function createEventTarget(initial = {}) {

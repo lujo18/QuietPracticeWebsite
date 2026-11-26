@@ -207,12 +207,12 @@ function showOverlay({
   }
 
   if (appStoreAction) {
-    appStoreAction.hidden = !android
+    appStoreAction.hidden = true
   }
 
   if (statusElement) {
     statusElement.textContent = android
-      ? "Quiet Practice is currently available on iPhone and iPad."
+      ? "Quiet Practice is currently available on iPhone and iPad. No Android app or Play Store listing is available yet."
       : "Open this page in Safari, then tap Get Quiet Practice."
   }
 
@@ -303,14 +303,19 @@ function applyAndroidBrowserState({
   primaryCtaElement,
   statusElement,
   helpElement,
+  showAppStoreCta = true,
 }) {
   if (primaryCtaElement) {
-    primaryCtaElement.textContent = "View on the App Store"
+    primaryCtaElement.hidden = !showAppStoreCta
+    if (showAppStoreCta) {
+      primaryCtaElement.textContent = "View on the App Store"
+    }
   }
 
   if (statusElement) {
-    statusElement.textContent =
-      "Quiet Practice is currently available on iPhone and iPad. No Android app or Play Store listing is available yet."
+    statusElement.textContent = showAppStoreCta
+      ? "Quiet Practice is currently available on iPhone and iPad. No Android app or Play Store listing is available yet."
+      : "Quiet Practice is currently available on iPhone and iPad. No Android app or Play Store listing is available yet."
   }
 
   if (helpElement) {
@@ -326,8 +331,9 @@ function applyAndroidBrowserState({
     }
 
     if (paragraphs[1]) {
-      paragraphs[1].textContent =
-        "You can view the App Store listing from this device, but there is no Android app or Google Play listing yet."
+      paragraphs[1].textContent = showAppStoreCta
+        ? "You can view the App Store listing from this device, but there is no Android app or Google Play listing yet."
+        : "There is no Android app or Google Play listing yet. If you opened this page in an in-app browser, use your browser menu to open it in Chrome."
     }
   }
 }
@@ -361,6 +367,15 @@ export function runHandoff({
     applyAndroidBrowserState({ primaryCtaElement, statusElement, helpElement })
   }
 
+  if (state.showOverlay && state.android) {
+    applyAndroidBrowserState({
+      primaryCtaElement,
+      statusElement,
+      helpElement,
+      showAppStoreCta: false,
+    })
+  }
+
   if (state.showOverlay) {
     const openChromeIntent = () => {
       try {
@@ -383,7 +398,13 @@ export function runHandoff({
       openChromeIntent,
       onDismiss:
         state.android && state.kind === "in-app-browser"
-          ? () => applyAndroidBrowserState({ primaryCtaElement, statusElement, helpElement })
+          ? () =>
+              applyAndroidBrowserState({
+                primaryCtaElement,
+                statusElement,
+                helpElement,
+                showAppStoreCta: false,
+              })
           : undefined,
     })
 
