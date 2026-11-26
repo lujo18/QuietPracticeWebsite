@@ -168,7 +168,7 @@ function showOverlay({
   const bodyElement = overlayElement.querySelector("[data-overlay-body]")
   const chromeAction = overlayElement.querySelector("[data-overlay-chrome]")
   const appStoreAction = overlayElement.querySelector("[data-overlay-app-store]")
-  const dismissButton = overlayElement.querySelector("[data-overlay-dismiss]")
+  const contentElement = overlayElement.querySelector(".in-app-overlay__content")
   const browserLabel = inAppBrowserKind === "instagram" ? "Instagram" : "TikTok"
 
   if (titleElement) {
@@ -215,7 +215,8 @@ function showOverlay({
 
   const previousFocus =
     document.activeElement instanceof HTMLElement ? document.activeElement : null
-  const initialFocus = dismissButton || getFocusableElements(overlayElement)[0]
+  const focusableElements = getFocusableElements(overlayElement)
+  const initialFocus = focusableElements[0] || contentElement || overlayElement
 
   let closed = false
 
@@ -228,9 +229,6 @@ function showOverlay({
     overlayElement.hidden = true
     overlayElement.removeEventListener("keydown", onKeyDown)
     overlayElement.removeEventListener("click", onOverlayClick)
-    if (dismissButton) {
-      dismissButton.removeEventListener("click", closeOverlay)
-    }
     if (chromeAction && onChromeClick) {
       chromeAction.removeEventListener("click", onChromeClick)
     }
@@ -285,11 +283,10 @@ function showOverlay({
   overlayElement.addEventListener("keydown", onKeyDown)
   overlayElement.addEventListener("click", onOverlayClick)
 
-  if (dismissButton) {
-    dismissButton.addEventListener("click", closeOverlay)
-  }
-
   if (initialFocus && typeof initialFocus.focus === "function") {
+    if (initialFocus === contentElement || initialFocus === overlayElement) {
+      initialFocus.setAttribute("tabindex", "-1")
+    }
     initialFocus.focus()
   }
 

@@ -378,6 +378,13 @@ h1 {
   align-items: center;
   gap: 20px;
   text-align: center;
+  outline: none;
+}
+
+.in-app-overlay__content:focus-visible {
+  outline: 3px solid #5B7F61;
+  outline-offset: 8px;
+  border-radius: 12px;
 }
 
 .in-app-overlay__title {
@@ -447,20 +454,9 @@ h1 {
   border-color: #15120D;
 }
 
-.in-app-overlay__button--ghost {
-  background: transparent;
-  color: #15120D;
-  border-color: rgba(21, 18, 13, 0.2);
-}
-
 @media (hover: hover) and (pointer: fine) {
   .in-app-overlay__button--primary:hover {
     background: #2A241C;
-  }
-
-  .in-app-overlay__button--ghost:hover {
-    border-color: rgba(21, 18, 13, 0.45);
-    background: rgba(21, 18, 13, 0.04);
   }
 }
 

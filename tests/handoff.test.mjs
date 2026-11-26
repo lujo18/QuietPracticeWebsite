@@ -278,7 +278,7 @@ test("Android in-app browser gets no fake Play Store fallback and best-effort Ch
   assert.match(primaryCtaElement.textContent, /Get Quiet Practice|App Store/)
 })
 
-test("Android in-app overlay shows Open in Chrome and Continue to page without App Store action", () => {
+test("Android in-app overlay shows Open in Chrome without App Store or continue actions", () => {
   const statusElement = { textContent: genericStatus }
   const primaryCtaElement = { textContent: "Get Quiet Practice" }
   const helpTitle = { textContent: "App Store help" }
@@ -292,8 +292,7 @@ test("Android in-app overlay shows Open in Chrome and Continue to page without A
     },
   }
   const chromeAction = createEventTarget({ hidden: true })
-  const dismissButton = createEventTarget()
-  const overlayElement = createOverlayStub({ chromeAction, dismissButton })
+  const overlayElement = createOverlayStub({ chromeAction })
 
   withDomStubs(() => {
     runHandoff({
@@ -313,11 +312,57 @@ test("Android in-app overlay shows Open in Chrome and Continue to page without A
 
   assert.equal(overlayElement.hidden, false)
   assert.equal(chromeAction.hidden, false)
-  assert.equal(dismissButton.hidden, false)
   assert.equal(overlayElement._parts.appStoreAction.hidden, true)
+  assert.equal(overlayElement.querySelector("[data-overlay-dismiss]"), null)
   assert.equal(primaryCtaElement.hidden, true)
   assert.match(statusElement.textContent, /No Android app or Play Store listing/)
   assert.equal(helpTitle.textContent, "iPhone and iPad only")
+})
+
+test("iOS in-app overlay is instructional with no confusing CTA", () => {
+  const inAppUserAgents = [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 musical_ly_34.0.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 330.0.0.0.0",
+  ]
+
+  for (const userAgent of inAppUserAgents) {
+    const statusElement = { textContent: genericStatus }
+    const overlayElement = createOverlayStub()
+
+    withDomStubs(() => {
+      runHandoff({
+        userAgent,
+        platform: "iPhone",
+        maxTouchPoints: 5,
+        search: "",
+        href: "https://quietpractice.app/?ref=test",
+        statusElement,
+        overlayElement,
+        replace() {
+          throw new Error("should not redirect iOS in-app browser")
+        },
+      })
+    })
+
+    assert.equal(overlayElement.hidden, false)
+    assert.equal(overlayElement._parts.chromeAction.hidden, true)
+    assert.equal(overlayElement._parts.appStoreAction.hidden, true)
+    assert.equal(overlayElement.querySelector("[data-overlay-dismiss]"), null)
+    assert.equal(
+      statusElement.textContent,
+      "Open this page in Safari, then tap Get Quiet Practice.",
+    )
+
+    const [chooseLine, openLine] = overlayElement._parts.body.children
+    assert.deepEqual(
+      chooseLine.children.map((node) => (typeof node === "string" ? node : node.textContent)),
+      ["Tap ", "•••", " and choose"],
+    )
+    assert.deepEqual(
+      openLine.children.map((node) => (typeof node === "string" ? node : node.textContent)),
+      ["Open in browser"],
+    )
+  }
 })
 
 test("Android in-app browser stay=1 suppresses auto intent but keeps overlay state", () => {
@@ -471,7 +516,7 @@ test("Chrome intent fallback uses conservative stay=1 URL for auto and button fl
   )
 })
 
-test("Android in-app overlay dismiss leaves honest iPhone/iPad-only fallback state", () => {
+test("Android in-app overlay Escape dismissal leaves honest iPhone/iPad-only fallback state", () => {
   const statusElement = { textContent: genericStatus }
   const primaryCtaElement = { textContent: "Get Quiet Practice" }
   const helpTitle = { textContent: "App Store help" }
@@ -490,8 +535,7 @@ test("Android in-app overlay dismiss leaves honest iPhone/iPad-only fallback sta
       return selector === "p" ? helpParagraphs : []
     },
   }
-  const dismissButton = createEventTarget()
-  const overlayElement = createOverlayStub({ dismissButton })
+  const overlayElement = createOverlayStub()
 
   withDomStubs(() => {
     runHandoff({
@@ -509,7 +553,7 @@ test("Android in-app overlay dismiss leaves honest iPhone/iPad-only fallback sta
     })
 
     assert.equal(overlayElement.hidden, false)
-    dismissButton.dispatch("click")
+    overlayElement.dispatch("keydown", { key: "Escape" })
   })
 
   assert.equal(overlayElement.hidden, true)
@@ -519,6 +563,81 @@ test("Android in-app overlay dismiss leaves honest iPhone/iPad-only fallback sta
   assert.equal(helpTitle.textContent, "iPhone and iPad only")
   assert.match(helpParagraphs[1].textContent, /no Android app or Google Play listing/i)
   assert.equal(overlayElement._parts.appStoreAction.hidden, true)
+  assert.equal(overlayElement.querySelector("[data-overlay-dismiss]"), null)
+})
+
+test("Android in-app overlay backdrop click dismissal leaves honest fallback state", () => {
+  const statusElement = { textContent: genericStatus }
+  const primaryCtaElement = { textContent: "Get Quiet Practice" }
+  const helpElement = {
+    querySelector(selector) {
+      return selector === "h2" ? { textContent: "App Store help" } : null
+    },
+    querySelectorAll(selector) {
+      return selector === "p"
+        ? [{ textContent: "" }, { textContent: "" }]
+        : []
+    },
+  }
+  const overlayElement = createOverlayStub()
+
+  withDomStubs(() => {
+    runHandoff({
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36 TikTok 34.0.0",
+      platform: "Linux armv8l",
+      maxTouchPoints: 5,
+      search: "?stay=1",
+      href: "https://quietpractice.app/?ref=tiktok",
+      statusElement,
+      primaryCtaElement,
+      helpElement,
+      overlayElement,
+      openUrl() {},
+    })
+
+    assert.equal(overlayElement.hidden, false)
+    overlayElement.dispatch("click", { target: overlayElement })
+  })
+
+  assert.equal(overlayElement.hidden, true)
+  assert.equal(primaryCtaElement.hidden, true)
+  assert.match(statusElement.textContent, /No Android app or Play Store listing/)
+})
+
+test("iOS in-app overlay focus fallback handles no focusable elements", () => {
+  const statusElement = { textContent: genericStatus }
+  const overlayElement = createOverlayStub()
+  let contentFocused = false
+  overlayElement._parts.content.focus = () => {
+    contentFocused = true
+  }
+
+  withDomStubs(() => {
+    runHandoff({
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 330.0.0.0.0",
+      platform: "iPhone",
+      maxTouchPoints: 5,
+      search: "",
+      href: "https://quietpractice.app/?ref=test",
+      statusElement,
+      overlayElement,
+    })
+
+    assert.equal(contentFocused, true)
+    assert.equal(overlayElement._parts.content["tabindex"], "-1")
+
+    let prevented = false
+    overlayElement.dispatch("keydown", {
+      key: "Tab",
+      shiftKey: false,
+      preventDefault() {
+        prevented = true
+      },
+    })
+    assert.equal(prevented, true)
+  })
 })
 
 function createEventTarget(initial = {}) {
@@ -550,11 +669,14 @@ function createEventTarget(initial = {}) {
     hasAttribute(name) {
       return Boolean(this[name])
     },
+    setAttribute(name, value) {
+      this[name] = value
+    },
     focus() {},
   }
 }
 
-function createOverlayStub({ dismissButton = createEventTarget(), chromeAction = createEventTarget({ hidden: true }) } = {}) {
+function createOverlayStub({ chromeAction = createEventTarget({ hidden: true }) } = {}) {
   const appStoreAction = createEventTarget({ hidden: true })
   const title = { textContent: "" }
   const body = {
@@ -564,6 +686,7 @@ function createOverlayStub({ dismissButton = createEventTarget(), chromeAction =
       this.children.push(...nodes)
     },
   }
+  const content = createEventTarget()
 
   const overlay = createEventTarget({
     hidden: true,
@@ -574,7 +697,8 @@ function createOverlayStub({ dismissButton = createEventTarget(), chromeAction =
         "[data-overlay-body]": body,
         "[data-overlay-chrome]": chromeAction,
         "[data-overlay-app-store]": appStoreAction,
-        "[data-overlay-dismiss]": dismissButton,
+        "[data-overlay-dismiss]": null,
+        ".in-app-overlay__content": content,
       }
       return map[selector] || null
     },
@@ -583,13 +707,13 @@ function createOverlayStub({ dismissButton = createEventTarget(), chromeAction =
         selector ===
         'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
       ) {
-        return [chromeAction, appStoreAction, dismissButton].filter((el) => !el.hidden)
+        return [chromeAction, appStoreAction].filter((el) => !el.hidden)
       }
       return []
     },
   })
 
-  overlay._parts = { title, body, chromeAction, appStoreAction, dismissButton }
+  overlay._parts = { title, body, chromeAction, appStoreAction, content }
   return overlay
 }
 
