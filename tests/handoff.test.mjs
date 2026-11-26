@@ -557,12 +557,11 @@ function createEventTarget(initial = {}) {
 function createOverlayStub({ dismissButton = createEventTarget(), chromeAction = createEventTarget({ hidden: true }) } = {}) {
   const appStoreAction = createEventTarget({ hidden: true })
   const title = { textContent: "" }
-  const body = { textContent: "" }
-  const steps = {
+  const body = {
     innerHTML: "",
     children: [],
-    appendChild(item) {
-      this.children.push(item)
+    append(...nodes) {
+      this.children.push(...nodes)
     },
   }
 
@@ -573,7 +572,6 @@ function createOverlayStub({ dismissButton = createEventTarget(), chromeAction =
       const map = {
         "[data-overlay-title]": title,
         "[data-overlay-body]": body,
-        "[data-overlay-steps]": steps,
         "[data-overlay-chrome]": chromeAction,
         "[data-overlay-app-store]": appStoreAction,
         "[data-overlay-dismiss]": dismissButton,
@@ -591,7 +589,7 @@ function createOverlayStub({ dismissButton = createEventTarget(), chromeAction =
     },
   })
 
-  overlay._parts = { title, body, steps, chromeAction, appStoreAction, dismissButton }
+  overlay._parts = { title, body, chromeAction, appStoreAction, dismissButton }
   return overlay
 }
 
@@ -602,7 +600,14 @@ function withDomStubs(fn) {
   globalThis.document = {
     activeElement: null,
     createElement() {
-      return { textContent: "" }
+      return {
+        textContent: "",
+        className: "",
+        children: [],
+        append(...nodes) {
+          this.children.push(...nodes)
+        },
+      }
     },
   }
   try {

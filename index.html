@@ -75,22 +75,18 @@
   </footer>
 
   <div class="in-app-overlay" id="in-app-overlay" hidden>
-    <div class="in-app-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="in-app-overlay-title" aria-describedby="in-app-overlay-body">
-      <div class="in-app-overlay__arrow" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
-          <path d="M12 19V5"></path>
-          <path d="M5 12l7-7 7 7"></path>
-        </svg>
-        <span class="in-app-overlay__arrow-label">••• menu</span>
-      </div>
-      <p class="in-app-overlay__eyebrow">Open in browser</p>
-      <h2 class="in-app-overlay__title" id="in-app-overlay-title" data-overlay-title>Open in your browser</h2>
-      <p class="in-app-overlay__body" id="in-app-overlay-body" data-overlay-body>This page works best in your default browser.</p>
-      <ol class="in-app-overlay__steps" data-overlay-steps>
-        <li>Tap ••• menu</li>
-        <li>Tap Open in browser</li>
-        <li>Tap Get Quiet Practice</li>
-      </ol>
+    <div class="in-app-overlay__arrow" aria-hidden="true">
+      <svg viewBox="0 0 72 72" width="72" height="72" fill="none" focusable="false">
+        <path d="M52 10v38" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        <path d="M34 24l18-14 14 18" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="in-app-overlay__content" role="dialog" aria-modal="true" aria-labelledby="in-app-overlay-title" aria-describedby="in-app-overlay-body">
+      <h2 class="in-app-overlay__title" id="in-app-overlay-title" data-overlay-title>You're in the TikTok browser</h2>
+      <p class="in-app-overlay__body" id="in-app-overlay-body" data-overlay-body>
+        <span class="in-app-overlay__line">Tap <strong>•••</strong> and choose</span>
+        <span class="in-app-overlay__line"><strong>Open in browser</strong></span>
+      </p>
       <div class="in-app-overlay__actions">
         <button type="button" class="in-app-overlay__button in-app-overlay__button--primary" data-overlay-chrome hidden>Open in Chrome</button>
         <button type="button" class="in-app-overlay__button in-app-overlay__button--ghost" data-overlay-dismiss>Continue to page</button>

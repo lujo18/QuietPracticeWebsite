@@ -166,34 +166,31 @@ function showOverlay({
 
   const titleElement = overlayElement.querySelector("[data-overlay-title]")
   const bodyElement = overlayElement.querySelector("[data-overlay-body]")
-  const stepsElement = overlayElement.querySelector("[data-overlay-steps]")
   const chromeAction = overlayElement.querySelector("[data-overlay-chrome]")
   const appStoreAction = overlayElement.querySelector("[data-overlay-app-store]")
   const dismissButton = overlayElement.querySelector("[data-overlay-dismiss]")
   const browserLabel = inAppBrowserKind === "instagram" ? "Instagram" : "TikTok"
 
   if (titleElement) {
-    titleElement.textContent = `Open in your browser`
+    titleElement.textContent = `You're in the ${browserLabel} browser`
   }
 
   if (bodyElement) {
-    bodyElement.textContent =
-      iOS
-        ? `${browserLabel}'s in-app browser can block the App Store handoff. Open this page in Safari to continue.`
-        : `${browserLabel}'s in-app browser can limit downloads. Open this page in Chrome to continue.`
-  }
+    bodyElement.innerHTML = ""
+    const chooseLine = document.createElement("span")
+    chooseLine.className = "in-app-overlay__line"
+    chooseLine.append("Tap ")
+    const menu = document.createElement("strong")
+    menu.textContent = "•••"
+    chooseLine.append(menu, " and choose")
 
-  if (stepsElement) {
-    stepsElement.innerHTML = ""
-    const steps = iOS
-      ? ["Tap ••• menu", "Tap Open in browser", "Tap Get Quiet Practice"]
-      : ["Tap ••• menu", "Tap Open in browser", "Tap Open in Chrome"]
+    const openLine = document.createElement("span")
+    openLine.className = "in-app-overlay__line"
+    const openStrong = document.createElement("strong")
+    openStrong.textContent = "Open in browser"
+    openLine.append(openStrong)
 
-    for (const step of steps) {
-      const item = document.createElement("li")
-      item.textContent = step
-      stepsElement.appendChild(item)
-    }
+    bodyElement.append(chooseLine, openLine)
   }
 
   const onChromeClick =
